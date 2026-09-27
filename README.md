@@ -5,12 +5,10 @@
 ## Giới thiệu
 
 **Mục tiêu dự án:**
-Xây dựng nền tảng thương mại điện tử, giúp người dùng có thể tiếp cận với các mặt hàng theo sở thích, nhu cầu - tìm kiếm, xem sản phẩm, đặt hàng và thanh toán
-
+Xây dựng nền tảng Thương mại điện tử, giúp người dùng có thể tiếp cận với các mặt hàng theo sở thích, nhu cầu - tìm kiếm, xem sản phẩm, đặt hàng và thanh toán
 **Đối tượng người dùng:**
 Khách hàng đang tìm kiếm mặt hàng theo nhu cầu, sở thích.
 Người bán đăng sản phẩm và admin quản lý hệ thống
-
 ---
 
 ## Thành viên & Vai trò
@@ -24,21 +22,21 @@ Người bán đăng sản phẩm và admin quản lý hệ thống
 ---
 
 ## Quy tắc & Quy trình làm việc
-
+ 
 **Quy trình quản lý:** Scrum, sprint 1 tuần. Task được quản lý trên Jira, tài liệu chi tiết lưu ở Confluence.
-
+ 
 **Branch strategy:** Git Flow — main / develop / feature/* / hotfix/*
-
+ 
 **Quy tắc commit:** Conventional Commits — feat:, fix:, docs:, refactor:
-
-**Coding convention:** Naming class/method theo chuẩn Java, format code trước khi commit
-
+ 
+**Coding convention:**  Naming class/method theo chuẩn Java, format code trước khi commit 
+ 
 **Quy trình Pull Request:**
-1. Tạo branch từ `develop`: `feat/ten-tinh-nang`
+1. Tạo branch từ `dev`: `feat/ten-tinh-nang`
 2. Code + test local
 3. Push và tạo Pull Request, mô tả rõ thay đổi
-4. Ít nhất 1 thành viên khác review trước khi merge
-5. Merge vào `develop`
+4. Merge vào `develop`
+5. Ít nhất 1 thành viên khác review trước khi merge
 6. Merge vào `main` để tự động deploy lên staging
 
 ---
