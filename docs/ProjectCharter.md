@@ -1,0 +1,1 @@
+setup jira, repo done
