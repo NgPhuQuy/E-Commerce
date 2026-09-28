@@ -42,27 +42,30 @@ Người bán đăng sản phẩm và admin quản lý hệ thống
 ---
 
 ## Pipeline CI/CD
- 
-**CI**
+
+Do hệ thống chia theo kiến trúc microservice và tách biệt Frontend/Backend, mỗi service (và FE) có pipeline CI/CD riêng, chạy độc lập — chỉ trigger khi có thay đổi trong đúng thư mục/service đó, không build lại toàn bộ hệ thống mỗi lần push.
+
+**CI** (áp dụng riêng cho từng service/FE)
 - Chạy tự động khi có push lên bất kỳ nhánh nào (trừ `main` — không push trực tiếp lên `main` được, phải qua Pull Request)
-- Gồm các bước: build project, chạy unit test tự động, chạy lint check format code
-- Mục đích: phát hiện lỗi sớm trước khi merge
-**CD**
+- Gồm các bước: build project, chạy unit test tự động, chạy lint check format code — chỉ chạy cho service có thay đổi
+- Mục đích: phát hiện lỗi sớm trước khi merge, không ảnh hưởng đến các service khác
+
+**CD** (áp dụng riêng cho từng service/FE)
 - Chạy tự động khi Pull Request được merge vào `main`
-- Gồm các bước: build lại, chạy test, đóng gói (build image/artifact)
-- Deploy lên production: thực hiện thủ công (chưa tự động deploy)
+- Gồm các bước: build lại, chạy test, đóng gói (build image/artifact) — riêng cho service vừa thay đổi
+- Deploy lên production: thực hiện thủ công (chưa tự động deploy), deploy độc lập từng service, không cần deploy lại toàn bộ hệ thống
 
 ---
 
 ## Công nghệ sử dụng
 
 ### Frontend
-- Framework: 
+- Framework:
 - UI Library:
 - State management:
 
 ### Backend
-- Framework: Spring boot 3
+- Framework: Spring Boot 3
 - Ngôn ngữ: Java
 - Authentication: JWT
 
@@ -72,22 +75,23 @@ Người bán đăng sản phẩm và admin quản lý hệ thống
 
 ### DevOps / CI-CD
 - Container: Docker, Docker Compose
-- CI/CD Pipeline: Github Actions
+- CI/CD Pipeline: GitHub Actions
 - Deploy: ...
 
 ### Công cụ quản lý
-- Quản lý task: Jira 
+- Quản lý task: Jira
 - Tài liệu: Confluence
 - Giao tiếp: Zalo group
 
 ---
 
 ## Kiến trúc hệ thống
-Hệ thống sử dụng kiến trúc microservice với framework Spring boot, vì tính mở rộng và thay đổi yêu cầu linh hoạt. Phù hợp với các hệ thống enterprise cần được thường xuyên mở rộng, bảo trì, thay đổi các công nghệ mới một cách linh hoạt.
+
+Hệ thống sử dụng kiến trúc microservice với framework Spring Boot, vì tính mở rộng và thay đổi yêu cầu linh hoạt. Phù hợp với các hệ thống enterprise cần được thường xuyên mở rộng, bảo trì, thay đổi các công nghệ mới một cách linh hoạt.
 
 ---
 
-## 📂 Cấu trúc thư mục
+## Cấu trúc thư mục
 
 ```
 project-root/
@@ -102,27 +106,10 @@ project-root/
 
 ---
 
-## 🔄 Quy trình phát triển (Workflow)
-
-**Quy trình quản lý:** Scrum, sprint 1 tuần
-
-**Branch strategy:** <!-- vd: Git Flow — main / develop / feature/* / hotfix/* -->
-
-**Quy tắc commit:** <!-- vd: Conventional Commits — feat:, fix:, docs:, refactor: -->
-
-**Quy trình Pull Request:**
-1. Tạo branch từ `develop`: `feature/ten-tinh-nang`
-2. Code + tự test local
-3. Push và tạo Pull Request, mô tả rõ thay đổi
-4. Ít nhất 1 thành viên khác review trước khi merge
-5. Merge vào `develop`, sau đó merge vào `main` khi release
-
----
-
-## 🧪 Testing
+## Testing
 
 - Loại test: <!-- vd: Unit test, Integration test -->
-- Công cụ: <!-- vd: Pytest, Jest -->
+- Công cụ: <!-- vd: JUnit, Mockito -->
 - Cách chạy test:
 ```bash
 [lệnh chạy test]
@@ -130,7 +117,7 @@ project-root/
 
 ---
 
-## 📅 Sprint Log
+## Sprint Log
 
 | Sprint | Thời gian | Mục tiêu | Kết quả |
 |---|---|---|---|
@@ -140,10 +127,14 @@ project-root/
 
 ---
 
-## 📖 Tài liệu liên quan
+## Tài liệu liên quan
 
 - Jira Board: [link]
 - Confluence Docs: [link]
 - Figma Design: [link]
 
 ---
+
+## License
+
+<!-- vd: MIT License -->
