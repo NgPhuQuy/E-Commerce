@@ -6,9 +6,11 @@
 
 **Mục tiêu dự án:**
 Xây dựng nền tảng Thương mại điện tử, giúp người dùng có thể tiếp cận với các mặt hàng theo sở thích, nhu cầu - tìm kiếm, xem sản phẩm, đặt hàng và thanh toán
+
 **Đối tượng người dùng:**
 Khách hàng đang tìm kiếm mặt hàng theo nhu cầu, sở thích.
 Người bán đăng sản phẩm và admin quản lý hệ thống
+
 ---
 
 ## Thành viên & Vai trò
@@ -47,7 +49,7 @@ Do hệ thống chia theo kiến trúc microservice và tách biệt Frontend/Ba
 
 **CI** (áp dụng riêng cho từng service/FE)
 - Chạy tự động khi có push lên bất kỳ nhánh nào (trừ `main` — không push trực tiếp lên `main` được, phải qua Pull Request)
-- Gồm các bước: build project, chạy unit test tự động, chạy lint check format code — chỉ chạy cho service có thay đổi
+- Gồm các bước: build project, chạy unit/integration test tự động, chạy lint check format code — chỉ chạy cho service có thay đổi
 - Mục đích: phát hiện lỗi sớm trước khi merge, không ảnh hưởng đến các service khác
 
 **CD** (áp dụng riêng cho từng service/FE)
@@ -60,9 +62,8 @@ Do hệ thống chia theo kiến trúc microservice và tách biệt Frontend/Ba
 ## Công nghệ sử dụng
 
 ### Frontend
-- Framework:
-- UI Library:
-- State management:
+- Framework: ReactJS(Vite)
+- UI Library: TailwingCSS
 
 ### Backend
 - Framework: Spring Boot 3
@@ -94,26 +95,22 @@ Hệ thống sử dụng kiến trúc microservice với framework Spring Boot, 
 ## Cấu trúc thư mục
 
 ```
-project-root/
-├── frontend/
+E-Commerce/
+├── E-Commerce-Web/
 │   └── ...
-├── backend/
-│   └── ...
-├── docs/
+├── E-Commerce-APIs/
 │   └── ...
 └── README.md
+└── .gitignore
 ```
 
 ---
 
 ## Testing
 
-- Loại test: <!-- vd: Unit test, Integration test -->
-- Công cụ: <!-- vd: JUnit, Mockito -->
-- Cách chạy test:
-```bash
-[lệnh chạy test]
-```
+- Loại test: Unit test, Integration test
+- Công cụ: JUnit, Mockito 
+- Cách chạy test: ...
 
 ---
 
@@ -121,20 +118,14 @@ project-root/
 
 | Sprint | Thời gian | Mục tiêu | Kết quả |
 |---|---|---|---|
-| Sprint 0 | [ngày - ngày] | Setup môi trường, tech stack, CI/CD | |
-| Sprint 1 | [ngày - ngày] | | |
-| Sprint 2 | [ngày - ngày] | | |
+| Sprint 0 | 28/08/2026 - 05/09/2026 | Xác định rõ các mục tiêu cần đạt trong project | |
+| Sprint 1 | ngày - ngày | | |
+| Sprint 2 | ngày - ngày | | |
 
 ---
 
 ## Tài liệu liên quan
 
-- Jira Board: [link]
-- Confluence Docs: [link]
+- Jira Board: [link jira Board](https://ngphuquy-e-commerce.atlassian.net/jira/software/projects/SCRUM/boards/1?filter=&groupBy=none&atlOrigin=eyJpIjoiMTBmOGU0YjUxNjViNGY1OTk2OThlOWE2MjE2YjQ2MTciLCJwIjoiaiJ9)
+- Confluence Docs: [link Confluence Docs](https://ngphuquy-e-commerce.atlassian.net/wiki/x/-QEB)
 - Figma Design: [link]
-
----
-
-## License
-
-<!-- vd: MIT License -->
