@@ -25,7 +25,7 @@ Người bán đăng sản phẩm và admin quản lý hệ thống
  
 **Quy trình quản lý:** Scrum, sprint 1 tuần. Task được quản lý trên Jira, tài liệu chi tiết lưu ở Confluence.
  
-**Branch strategy:** Git Flow — main / develop / feature/* / hotfix/*
+**Branch strategy:** Git Flow — main / dev / feat/* / hotfix/*
  
 **Quy tắc commit:** Conventional Commits — feat:, fix:, docs:, refactor:
  
