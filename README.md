@@ -1,6 +1,6 @@
 # EeasyShopping — E-Commerce Platform
 
-> Side project áp dụng quy trình Scrum, phát triển bởi nhóm 3 thành viên.
+> Project áp dụng quy trình Scrum, phát triển bởi nhóm 3 thành viên.
 
 ## Giới thiệu
 
