@@ -81,7 +81,7 @@ Do hệ thống chia theo kiến trúc microservice và tách biệt Frontend/Ba
 
 ### Công cụ quản lý
 - Quản lý task: Jira
-- Tài liệu: Confluence
+- Tài liệu: docs
 - Giao tiếp: Zalo group
 
 ---
