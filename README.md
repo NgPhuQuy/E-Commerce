@@ -27,7 +27,7 @@ Người bán đăng sản phẩm và admin quản lý hệ thống
  
 **Quy trình quản lý:** Scrum, sprint 1 tuần. Task được quản lý trên Jira, tài liệu chi tiết lưu ở Confluence.
  
-**Branch strategy:** Git Flow — main / develop / feature/* / hotfix/*
+**Branch strategy:** Git Flow — main / dev / feat/* / hotfix/*
  
 **Quy tắc commit:** Conventional Commits — feat:, fix:, docs:, refactor:
  
@@ -127,5 +127,4 @@ E-Commerce/
 ## Tài liệu liên quan
 
 - Jira Board: [link jira Board](https://ngphuquy-e-commerce.atlassian.net/jira/software/projects/SCRUM/boards/1?filter=&groupBy=none&atlOrigin=eyJpIjoiMTBmOGU0YjUxNjViNGY1OTk2OThlOWE2MjE2YjQ2MTciLCJwIjoiaiJ9)
-- Confluence Docs: [link Confluence Docs](https://ngphuquy-e-commerce.atlassian.net/wiki/x/-QEB)
 - Figma Design: [link]
