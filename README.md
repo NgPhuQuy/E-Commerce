@@ -17,9 +17,9 @@ Người bán đăng sản phẩm và admin quản lý hệ thống
 
 | Tên | Vai trò Scrum | Vai trò kỹ thuật | GitHub |
 |---|---|---|---|
-| Nguyễn Phú Quý | Product Owner | Developer | [@NgPhuQuy] |
-| Phạm Hoàng Phúc | Scrum Master | Developer | [@PhamPhuc0903] |
-| Nguyễn Châu Hoàng Khang | Developer | Developer | [@Ryannguyxn] |
+| Nguyễn Phú Quý | Product Owner | Developer | @NgPhuQuy |
+| Phạm Hoàng Phúc | Scrum Master | Developer | @PhamPhuc0903 |
+| Nguyễn Châu Hoàng Khang | Developer | Developer | @Ryannguyxn |
 
 ---
 
