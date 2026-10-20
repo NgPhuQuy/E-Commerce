@@ -1,0 +1,26 @@
+
+# Build output
+target/
+
+# Version control
+.git/
+.gitignore
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+
+# Secrets and environment
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Local documentation
+*.md
+
+# OS temporary files
+.DS_Store
+Thumbs.db

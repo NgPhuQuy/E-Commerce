@@ -1,0 +1,47 @@
+
+# ===== Stage 1: Build =====
+FROM eclipse-temurin:25-jdk AS build
+
+WORKDIR /app
+
+# Copy Maven Wrapper and project configuration
+COPY .mvn ./.mvn
+COPY mvnw pom.xml ./
+
+# Allow Maven Wrapper to execute in Linux
+RUN chmod +x ./mvnw
+
+# Download dependencies and cache this layer
+RUN ./mvnw -B dependency:go-offline
+
+# Copy source and build application
+COPY src ./src
+RUN ./mvnw -B clean package -DskipTests
+
+
+# ===== Stage 2: Runtime =====
+FROM eclipse-temurin:25-jre AS runtime
+
+WORKDIR /app
+
+# Install HTTP client for container healthcheck
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl && \
+    rm -rf /var/lib/apt/lists/*
+
+# Create a non-root user
+RUN groupadd --system app && \
+    useradd --system --gid app --no-create-home app
+
+# Copy the built JAR from the build stage
+COPY --from=build --chown=app:app /app/target/*.jar /app/app.jar
+
+USER app
+
+EXPOSE 8080
+
+# Check application health
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+    CMD curl --fail --silent --show-error http://localhost:8080/actuator/health || exit 1
+
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]
