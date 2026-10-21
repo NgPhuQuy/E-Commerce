@@ -1,6 +1,7 @@
 # D.2 — Ranh giới service và dữ liệu mỗi service sở hữu
 
 **Phiên bản:** v0.1 · **Ngày:** 21/10/2026
+
 **Phụ thuộc:** D.1 (`docs/QUY_UOC_KY_THUAT.md` v0.1), RAS v2.0 (`docs/Requirements_Analysis&Specification.docx`)
 
 ---
