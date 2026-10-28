@@ -11,7 +11,7 @@
 - Service trong phạm vi: **Auth, Shop, Cart, Order, Payment, Notification** + **API Gateway**. **Audit** là thành phần dùng chung (D.1 §1) và được coi như một service có DB riêng, chỉ nhận sự kiện.
 - **Last-Mile** là hệ thống ngoài, chỉ tích hợp qua API (D.1 §1). Không vẽ vào ma trận service, chỉ nêu ở mục 6.
 - **Ngoài phạm vi M1** (D.1 §1, ghi chú M1): Review, Voucher, ShopFollow. Các bảng liên quan chưa thuộc service nào trong tài liệu này.
-- **API công khai** = đi qua Gateway, có JWT. **API nội bộ** = service gọi service, nằm dưới `/api/internal/**`, Gateway không route ra ngoài.
+- **Quy ước truy cập API:** chỉ các API mở công khai (không cần đăng nhập) mới đặt dưới `/api/public/*`; các API còn lại dưới `/api/*` (gồm cả client gọi qua Gateway lẫn service gọi service) không tách đường dẫn riêng mà mặc định phải qua xác thực và xét quyền — không có quyền tự động bị chặn. Chi tiết đường dẫn, kết quả trả về và mã lỗi quy định ở tài liệu API.
 - **Sự kiện** = thông báo một chiều "việc đã xảy ra", bên phát không chờ kết quả. Cách vận chuyển (REST đẩy hay RabbitMQ) chưa chốt, xem Q1 ở mục 8. Danh sách bên dưới không đổi dù chọn cách nào.
 - Tên bảng lấy từ ERD hiện có. Bảng RAS yêu cầu mà ERD chưa vẽ được đánh dấu *(mới)*.
 
@@ -19,7 +19,7 @@
 
 ## 2. Ma trận tổng hợp
 
-| Service          | Sở hữu dữ liệu                                                                                                                                                                                        | API công khai (nhóm)                                                               | Gọi service nào (đồng bộ)                                | Phát sự kiện                                                                                      | Nhận sự kiện                                                                                                                                           |
+| Service          | Sở hữu dữ liệu                                                                                                                                                                                        | Nhóm API cung cấp                                                                  | Gọi service nào (đồng bộ)                                | Phát sự kiện                                                                                      | Nhận sự kiện                                                                                                                                           |
 |------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------|----------------------------------------------------------|---------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
 | **Auth**         | user, role, permission, user_role, role_permission, address, refresh_session *(mới)*                                                                                                                  | register/login/logout/Google, hồ sơ, sổ địa chỉ, quản lý Role                      | —                                                        | `UserRegistered`, `PasswordResetRequested`, `UserRoleChanged`, `LoginFailed`, `UserStatusChanged` | —                                                                                                                                                      |
 | **Shop**         | shop, seller_application, media_file, category, product_category, shop_category, product, product_image, sku, inventory, inventory_reservation, shop_collection *(mới)*, shop_collection_item *(mới)* | SellerApplication, Shop, Product/SKU/Inventory, Category, ShopCollection, tìm kiếm | **Auth** (cấp Role SELLER)                               | `SellerApplicationReviewed`, `ShopCreated`, `ShopStatusChanged`, `ProductModerated`               | —                                                                                                                                                      |
@@ -53,10 +53,8 @@ Gọi đồng bộ chỉ đi một chiều: **Order → Cart/Shop/Auth/Payment, 
 ### 3.1 Auth
 
 - **Sở hữu:** danh tính, Role/Permission, sổ địa chỉ giao hàng của Customer, phiên đăng nhập. Chỉ Auth ghi các bảng này.
-- **API công khai:** `POST /api/auth/register|login|logout|google|refresh`; `GET|PUT /api/users/me`; `/api/users/me/addresses` (CRUD); quản lý Role-Permission cho Admin.
-- **API nội bộ:**
-    - `POST /api/internal/users/{userId}/roles`: thêm một Role cho user, **idempotent** (thêm lần 2 không lỗi, không trùng). Chỉ Shop được gọi.
-    - `GET /api/internal/users/{userId}/addresses/{addressId}`: lấy một địa chỉ, có kiểm tra địa chỉ thuộc user. Chỉ Order gọi.
+- **API mở công khai (`/api/public/*`):** đăng ký, đăng nhập local, đăng nhập Google, làm mới phiên, xác minh email / đặt lại mật khẩu.
+- **API qua xét quyền:** đăng xuất, hồ sơ cá nhân, sổ địa chỉ, quản lý Role-Permission; thêm Role cho user (**idempotent**, Shop gọi khi duyệt đơn bán hàng); đọc một địa chỉ thuộc user (Order gọi khi tạo đơn).
 - **Gọi:** không gọi service nào.
 - **Phát:** `UserRegistered` (kèm email để Notification gửi mail xác minh), `PasswordResetRequested`, `UserRoleChanged`, `LoginFailed`, `UserStatusChanged`.
 - **Nhận:** không.
@@ -65,12 +63,9 @@ Gọi đồng bộ chỉ đi một chiều: **Order → Cart/Shop/Auth/Payment, 
 ### 3.2 Shop
 
 - **Sở hữu:** shop và mọi thứ gắn vào shop: hồ sơ đăng ký bán hàng, Product, SKU (giá), Inventory và Reservation, Category, ShopCollection. Giá và tồn kho nằm cùng DB với SKU.
-- **API công khai:** `/api/seller-applications` (Customer gửi, Admin duyệt/từ chối); `/api/shops`; `/api/products`, `/api/skus`, inventory của shop mình; `/api/categories`; `/api/shops/{id}/collections`; tìm kiếm/duyệt public không cần đăng nhập.
-- **API nội bộ:**
-    - `POST /api/internal/skus:batch-get`: Cart tra nhiều SKU một lần (trạng thái, tên, giá hiện tại).
-    - `POST /api/internal/inventory/reservations`: Order giữ hàng. Có `reservationId` làm khóa idempotent. **Phản hồi trả luôn snapshot xác nhận** (sku code, tên product, mô tả variant, đơn giá, shopId, tên shop) tại đúng thời điểm giữ hàng.
-    - `POST /api/internal/inventory/reservations/{id}/commit` và `.../release`: Order xác nhận hoặc nhả hàng, đều idempotent.
-- **Gọi:** Auth (`POST /api/internal/users/{userId}/roles`) khi Admin duyệt SellerApplication.
+- **API mở công khai (`/api/public/*`):** tìm kiếm và xem sản phẩm, danh mục, thông tin shop và bộ sưu tập công khai.
+- **API qua xét quyền:** gửi/duyệt `SellerApplication`; quản lý Shop, Product/SKU, Inventory, Category, ShopCollection; tra thông tin nhiều SKU một lần (Cart gọi); giữ hàng (`reserve` có khóa idempotent, trả kèm snapshot xác nhận gồm sku code, tên product, mô tả variant, đơn giá, shopId, tên shop), xác nhận (`commit`) và nhả hàng (`release`) đều idempotent (Order gọi).
+- **Gọi:** Auth (yêu cầu cấp Role `SELLER`) khi Admin duyệt SellerApplication.
 - **Phát:** `SellerApplicationReviewed`, `ShopCreated`, `ShopStatusChanged`, `ProductModerated`.
 - **Nhận:** không.
 - **Kiểm tra quyền:** Role SELLER, `emailVerified`, Permission đọc từ JWT. Việc "shop này có thuộc seller này không" Shop tự kiểm bằng dữ liệu của mình (`shop.owner_id`).
@@ -78,9 +73,9 @@ Gọi đồng bộ chỉ đi một chiều: **Order → Cart/Shop/Auth/Payment, 
 ### 3.3 Cart
 
 - **Sở hữu:** `cart` (owner = userId) và `cart_item` (sku_id, quantity). **Không lưu giá, tên, trạng thái bán.**
-- **API công khai:** thêm / sửa số lượng / xóa / xem giỏ. Khi xem giỏ, Cart gọi Shop để lấy tên và giá hiện tại và trả về cho client dưới dạng "giá ước tính".
-- **API nội bộ:** `GET /api/internal/carts/{userId}/items?ids=...`: Order lấy các item đã chọn khi checkout.
-- **Gọi:** Shop (`skus:batch-get`) khi thêm item (kiểm SKU tồn tại, bán được) và khi xem giỏ.
+- **API mở công khai:** không có.
+- **API qua xét quyền:** thêm / sửa số lượng / xóa / xem giỏ (khi xem giỏ, Cart gọi Shop lấy tên và giá hiện tại dưới dạng "giá ước tính"); cung cấp các item đã chọn trong giỏ cho Order khi checkout.
+- **Gọi:** Shop (tra thông tin lô SKU) khi thêm item (kiểm SKU tồn tại, bán được) và khi xem giỏ.
 - **Phát:** không.
 - **Nhận:** `OrderPlaced` → xóa các item đã mua khỏi giỏ.
 - **Khi Shop không trả lời:** vẫn trả danh sách item (sku_id, quantity) kèm cờ `priceUnavailable`, không tự điền giá cũ.
@@ -88,8 +83,8 @@ Gọi đồng bộ chỉ đi một chiều: **Order → Cart/Shop/Auth/Payment, 
 ### 3.4 Order
 
 - **Sở hữu:** đơn hàng tổng, đơn theo shop, dòng hàng và **snapshot thương mại** (tên, giá, địa chỉ giao, tên shop). Cả bảng `checkout_request` để retry không tạo đơn trùng.
-- **API công khai:** `POST /api/orders/checkout` (có idempotency key), xem lịch sử đơn, hủy đơn theo trạng thái, Seller xem/xử lý SellerOrder của shop mình.
-- **API nội bộ:** `POST /api/internal/orders/{orderId}/...` không cần mở cho service khác ở M1.
+- **API mở công khai:** không có.
+- **API qua xét quyền:** checkout (có idempotency key), xem lịch sử đơn, hủy đơn theo trạng thái, Seller xem/xử lý SellerOrder của shop mình. Không mở API đồng bộ cho service khác ở M1.
 - **Gọi (điều phối checkout):** Cart (lấy item đã chọn) → Auth (lấy địa chỉ để snapshot) → Shop (giữ hàng, nhận snapshot giá) → tính tổng → Payment (tạo thanh toán với số tiền do Order tính). Khi thanh toán xong: Shop `commit`; khi thất bại/hết hạn/hủy: Shop `release`.
 - **Phát:** `OrderPlaced`, `OrderCancelled`, `SellerOrderStatusChanged`.
 - **Nhận:** `PaymentSucceeded`, `PaymentFailed`, `PaymentExpired`.
@@ -98,8 +93,8 @@ Gọi đồng bộ chỉ đi một chiều: **Order → Cart/Shop/Auth/Payment, 
 ### 3.5 Payment
 
 - **Sở hữu:** giao dịch thanh toán, từng lần thử, nhật ký callback từ VNPay. Có lớp `PaymentGateway` (VNPay là bản cài đầu tiên) để thêm cổng khác không đổi phần còn lại (ghi chú M1: "mở rộng được nhiều cổng").
-- **API công khai:** tạo yêu cầu thanh toán trả URL VNPay; return URL / IPN từ VNPay.
-- **API nội bộ:** `POST /api/internal/payments`: Order tạo thanh toán (orderId, số tiền, idempotency key). Payment **không** nhận số tiền từ client.
+- **API mở công khai (`/api/public/*`):** return URL / IPN từ VNPay (tự xác minh chữ ký của VNPay).
+- **API qua xét quyền:** xem/khởi tạo yêu cầu thanh toán; tạo giao dịch thanh toán theo `orderId`, số tiền và idempotency key (Order gọi). Payment **không** nhận số tiền từ client.
 - **Gọi:** không gọi service nào. Chỉ gọi VNPay.
 - **Phát:** `PaymentSucceeded`, `PaymentFailed`, `PaymentExpired`.
 - **Nhận:** không.
@@ -108,7 +103,7 @@ Gọi đồng bộ chỉ đi một chiều: **Order → Cart/Shop/Auth/Payment, 
 ### 3.6 Notification
 
 - **Sở hữu:** thông báo trong ứng dụng, device token (FCM), lịch sử gửi. Không phải nguồn trạng thái nghiệp vụ (RAS FR-NOTI-001).
-- **API công khai:** xem danh sách, đánh dấu đã đọc, đăng ký/xóa device token.
+- **API qua xét quyền:** xem danh sách, đánh dấu đã đọc, đăng ký/xóa device token.
 - **Gọi:** không gọi service nào, chỉ gọi FCM/email.
 - **Phát:** không.
 - **Nhận:** các sự kiện giao dịch quan trọng ở bảng mục 2. Sự kiện mang đủ thông tin người nhận (userId, email nếu cần), nên Notification không phải hỏi lại Auth.
@@ -117,13 +112,13 @@ Gọi đồng bộ chỉ đi một chiều: **Order → Cart/Shop/Auth/Payment, 
 ### 3.7 Audit
 
 - **Sở hữu:** `audit_log` (chỉ thêm, không sửa, không xóa).
-- **API công khai:** tra cứu, yêu cầu Permission `AUDIT_READ`.
+- **API qua xét quyền:** tra cứu, yêu cầu Permission `AUDIT_READ`.
 - **Nhận:** sự kiện nhạy cảm từ các service khác (actor, action, target, time, result, correlation-id; không chứa mật khẩu, token, thông tin thanh toán).
 - **Không có API ghi từ client**, và **không service nào ghi thẳng vào `audit_log`**. "Dùng chung" nghĩa là mọi service gửi sự kiện cho nó, **không** nghĩa là dùng chung thư viện ghi vào DB của nó.
 
 ### 3.8 API Gateway
 
-Không sở hữu dữ liệu. Định tuyến theo prefix, xác minh JWT thô, gắn/chuyển `correlation-id`, chặn `/api/internal/**` từ bên ngoài. Không chứa logic nghiệp vụ.
+Không sở hữu dữ liệu, không chứa logic nghiệp vụ. Định tuyến theo prefix, cho qua `/api/public/*`, yêu cầu xác thực hợp lệ với các API còn lại (tự chặn nếu không hợp lệ; từng service tiếp tục xét quyền chi tiết), và gắn/chuyển `correlation-id`.
 
 ---
 
@@ -131,7 +126,7 @@ Không sở hữu dữ liệu. Định tuyến theo prefix, xác minh JWT thô, 
 
 | # | Điểm giao | Quy tắc chốt | Kiểm tra được bằng |
 |---|---|---|---|
-| 1 | **Order ↔ Product** | Order lưu snapshot (sku code, tên product, mô tả variant, đơn giá, tên shop, địa chỉ giao) lấy **một lần** từ phản hồi giữ hàng của Shop. Sau đó Order không bao giờ đọc lại Product. | Sửa tên/giá product xong, `GET order` cũ không đổi (RAS FR-ORD-003, BR-015, BR-031) |
+| 1 | **Order ↔ Product** | Order lưu snapshot (sku code, tên product, mô tả variant, đơn giá, tên shop, địa chỉ giao) lấy **một lần** từ phản hồi giữ hàng của Shop. Sau đó Order không bao giờ đọc lại Product. | Sửa tên/giá product xong, đơn cũ không đổi (RAS FR-ORD-003, BR-015, BR-031) |
 | 2 | **Cart ↔ giá** | Cart chỉ lưu `sku_id` và `quantity`. Giá hiển thị lấy từ Shop khi xem. Giá chốt tính ở checkout. | Bảng `cart_item` không có cột giá/tên (RAS FR-CART-004, BR-009) |
 | 3 | **Shop ↔ Role SELLER** | Shop không có bảng role, không ghi `user_role`. Duyệt xong Shop gọi Auth để thêm Role SELLER. | Xóa hết code Shop liên quan `user_role` mà luồng duyệt vẫn chạy, nhờ gọi Auth (RAS FR-SHOP-003, BR-039) |
 | 4 | **Audit** | Audit chỉ nhận sự kiện. Không có API ghi, không service nào ghi vào DB của Audit. | `audit_log` có đúng 1 nơi ghi (consumer sự kiện trong Audit) |
@@ -172,8 +167,8 @@ Cột "Xem lại khi" là điều kiện cụ thể khiến quyết định nên
 
 ### B5. Snapshot giá lấy từ phản hồi giữ hàng, không gọi Shop hai lần
 - **Lý do:** Nếu đọc giá một lần rồi giữ hàng lần nữa, giá có thể đổi giữa hai lần và snapshot lệch với hàng đã giữ. Gộp một lần thì snapshot đúng với thứ đã giữ.
-- **Bị loại:** Order gọi `GET sku` rồi `POST reserve`.
-- **Hệ quả:** API `reservations` của Shop phải trả nhiều trường hơn, và đó là hợp đồng Order phụ thuộc vào.
+- **Bị loại:** Order đọc SKU riêng rồi gọi giữ hàng riêng.
+- **Hệ quả:** API giữ hàng của Shop phải trả nhiều trường hơn, và đó là hợp đồng Order phụ thuộc vào.
 - **Xem lại khi:** cần hiển thị giá trước khi giữ hàng cho cùng một bước xác nhận.
 
 ### B6. Cart không lưu giá, kể cả giá cache
@@ -258,12 +253,12 @@ Màn hình cần dữ liệu hai nơi (ví dụ xem giỏ có tên và giá) th�
 | Thay đổi | Service đổi | Service khác phải sửa? | Vì sao |
 |---|---|---|---|
 | Đổi cột `product.detail`, thêm cột mới | Shop | Không | Chỉ lộ qua API; Order dùng snapshot |
-| Thay thuật toán giữ hàng (khóa bi quan thay vì cập nhật có điều kiện) | Shop | Không | Order chỉ thấy API `reservations` |
+| Thay thuật toán giữ hàng (khóa bi quan thay vì cập nhật có điều kiện) | Shop | Không | Order chỉ thấy API giữ hàng |
 | Đổi cấu trúc role-permission (thêm bảng trung gian) | Auth | Không | Service khác chỉ đọc claim trong JWT |
-| Thêm cổng thanh toán MoMo | Payment | Không | Nằm sau `PaymentGateway`; Order chỉ gọi `POST /payments` |
+| Thêm cổng thanh toán MoMo | Payment | Không | Nằm sau `PaymentGateway`; Order chỉ gọi API tạo thanh toán |
 | Đổi DB Notification sang MongoDB | Notification | Không | Không ai đọc DB của nó |
 | Đổi tên product sau khi đã mua | Shop | Không | Order giữ snapshot |
-| **Đổi hình dạng phản hồi `reservations`** | Shop | **Có: Order** | Đây là hợp đồng công khai giữa hai service, phải đổi cùng phiên bản |
+| **Đổi hình dạng phản hồi giữ hàng** | Shop | **Có: Order** | Đây là hợp đồng công khai giữa hai service, phải đổi cùng phiên bản |
 | **Đổi tên/ý nghĩa sự kiện `PaymentSucceeded`** | Payment | **Có: Order, Notification** | Sự kiện là hợp đồng, đổi thì bên nhận phải đổi |
 
 Hai dòng cuối cố ý nêu ra: hợp đồng API/sự kiện là chỗ **được phép** gây lan truyền, nên cần đánh phiên bản (D.3 nếu có) và không đổi tùy tiện.
@@ -274,7 +269,7 @@ Hai dòng cuối cố ý nêu ra: hợp đồng API/sự kiện là chỗ **đư
 
 ### Cần D.1 trả lời
 
-- **Q1 — REST hay sự kiện?** D.1 §3 ghi "giữa các service dùng REST đồng bộ", nhưng yêu cầu D.2 và RAS cần sự kiện (Audit chỉ nhận sự kiện, Notification không chặn giao dịch), và TECHSTACK ghi RabbitMQ ở trạng thái READY. Đề xuất: giữ khái niệm "sự kiện" như mục 2; M1 vận chuyển bằng REST đẩy một chiều (POST tới `/api/internal/events`, có retry); chuyển sang RabbitMQ sau mà **không đổi ma trận**. Rủi ro của REST đẩy: bên nhận đang tắt thì mất sự kiện nếu không có hàng đợi gửi lại ở bên phát (outbox).
+- **Q1 — REST hay sự kiện?** D.1 §3 ghi "giữa các service dùng REST đồng bộ", nhưng yêu cầu D.2 và RAS cần sự kiện (Audit chỉ nhận sự kiện, Notification không chặn giao dịch), và TECHSTACK ghi RabbitMQ ở trạng thái READY. Đề xuất: giữ khái niệm "sự kiện" như mục 2; M1 vận chuyển bằng REST đẩy một chiều (qua xét quyền, có retry); chuyển sang RabbitMQ sau mà **không đổi ma trận**. Rủi ro của REST đẩy: bên nhận đang tắt thì mất sự kiện nếu không có hàng đợi gửi lại ở bên phát (outbox).
 - **Q2 — Cách vận chuyển sự kiện Payment → Order** phụ thuộc Q1. Nếu REST đẩy, đó là callback có retry và tạo vòng phụ thuộc lúc chạy giữa Order và Payment.
 - **Q3 — Chuẩn JWT:** D.1 chưa ghi thuật toán ký. Đề xuất RS256 (B11).
 - **Q4 — "6 service + Gateway" có coi Audit là service thứ 7 không?** D.1 §1 nói Audit "dùng chung, không thuộc service nào". Tài liệu này coi nó là deployable riêng, vì đó là cách duy nhất để "chỉ nhận sự kiện".
