@@ -27,7 +27,7 @@
 
 | Hạng mục | Quy ước |
 |---|---|
-| Prefix | `/api` |
+| Prefix | `/api` (chỉ dùng `/api/public/*` cho API mở công khai; còn lại mặc định phải qua xét quyền) |
 | ID | UUID |
 | Tiền | `DECIMAL(12,2)` trong DB, `BigDecimal` trong Java, đơn vị đồng. Không dùng `float`/`double` |
 | Thời gian | UTC+7, định dạng ngày giờ mặc định của java |
