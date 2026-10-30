@@ -1,0 +1,99 @@
+
+Project EeasyShopping_Cart {
+  database_type: 'MySQL'
+  Note: 'ERD Cart Service - Milestone 1 - SCRUM-191'
+}
+
+Table cart {
+  id char(36) [pk, not null, note: 'UUID của Cart']
+  owner_id char(36) [not null, unique, note: 'UUID Customer thuộc Auth Service']
+  created_at datetime [not null]
+  updated_at datetime [not null]
+
+  Note: '''
+    Mỗi Customer có tối đa một Cart.
+    Không tạo FK sang Auth Service.
+
+    Lazy Creation:
+    Chỉ tạo Cart khi thêm SKU đầu tiên thành công.
+  '''
+}
+
+Table cart_item {
+  id char(36) [pk, not null, note: 'UUID của CartItem']
+  cart_id char(36) [not null, ref: > cart.id]
+  sku_id char(36) [not null, note: 'UUID SKU thuộc Shop Service']
+  quantity int [not null, note: 'Từ 1 đến 100']
+  version bigint [not null, default: 0]
+  created_at datetime [not null]
+  updated_at datetime [not null]
+  deleted_at datetime [note: 'NULL nếu còn hoạt động']
+
+  indexes {
+    cart_id
+    (cart_id, sku_id)
+  }
+
+  Note: '''
+    SOFT-DELETE:
+    deleted_at IS NULL nghĩa là item đang hoạt động.
+
+    UNIQUE ACTIVE SKU:
+    Migration MySQL phải tạo generated column:
+
+    active_marker TINYINT GENERATED ALWAYS AS
+      (CASE WHEN deleted_at IS NULL THEN 1 ELSE NULL END)
+    STORED
+
+    Sau đó tạo:
+    UNIQUE (cart_id, sku_id, active_marker)
+
+    Không dùng UNIQUE(cart_id, sku_id, deleted_at).
+
+    CHECK CONSTRAINT:
+    quantity BETWEEN 1 AND 100.
+
+    version tăng mỗi khi CartItem thay đổi.
+    Không tạo FK sang Shop Service.
+  '''
+}
+
+Table processed_order_event {
+  order_id char(36) [pk, not null, note: 'Order UUID từ Order Service']
+  processed_at datetime [not null]
+  outcome varchar(32) [not null, default: 'COMPLETED', note: 'Đã xử lý thành công OrderPlaced']
+
+  Note: '''
+    Bảng kỹ thuật chống xử lý OrderPlaced lặp.
+
+    Một orderId chỉ được xử lý một lần.
+    Ghi nhận kết quả và cập nhật Cart trong
+    cùng transaction.
+
+    Cơ chế truyền OrderPlaced chưa được chốt
+    trong D.2.
+
+    COMPLETED nghĩa là OrderPlaced đã được xử lý
+    thành công, không nhất thiết mọi CartItem
+    đều bị xóa.
+
+    Nếu transaction thất bại thì không ghi nhận
+    orderId, cho phép retry.
+
+    Không xử lý lại orderId đã COMPLETED.
+
+    CHECKOUT SNAPSHOT / VERSION:
+    Order lấy cartItemId, skuId, quantity và version
+    tại thời điểm checkout.
+
+    Khi xử lý OrderPlaced, Cart chỉ soft-delete
+    CartItem nếu id, skuId và version vẫn khớp
+    với snapshot đã checkout.
+
+    Nếu version khác, giữ nguyên CartItem hiện tại.
+
+    Mọi thao tác cập nhật quantity hoặc soft-delete
+    phải cập nhật version một cách an toàn
+    trong transaction.
+  '''
+}
