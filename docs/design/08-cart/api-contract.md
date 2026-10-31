@@ -25,12 +25,21 @@
 
 ### 2.1. Đường dẫn và xác thực
 
-- Public Cart API qua Gateway: `/api/cart` và `/api/cart/items...` (đây là đường dẫn đã chọn ở API-01, **chưa mặc định thêm `/v1`**).
+- Các API Cart dành cho Customer được truy cập qua Gateway tại `/api/cart` và `/api/cart/items...` (đường dẫn đã chọn ở API-01, chưa mặc định thêm `/v1`). Các endpoint này yêu cầu xác thực và phân quyền, không phải API public.
 - JWT hợp lệ và quyền `CUSTOMER` tương ứng theo Permission Matrix M1.
 - `GET /api/cart`: `CART_READ_SELF`.
 - Các thao tác `POST`, `PATCH`, `DELETE`: `CART_MANAGE_SELF`.
 - Backend lấy `userId` từ danh tính đã xác thực; **không nhận `userId` hoặc `ownerId` từ client** để xác định chủ giỏ.
-- Các đường `/api/internal/**` **không được public qua Gateway**. Bắt buộc xác thực service-to-service và kiểm tra quyền gọi nội bộ. Phương thức xác thực service cụ thể cần khớp ADR chung.
+
+- Phân loại truy cập API theo quy ước hiện tại của nhóm: API công khai (`public`, không yêu cầu xác thực) và API được bảo vệ (yêu cầu xác thực và/hoặc phân quyền).
+- Các endpoint Cart dành cho Customer đều là API được bảo vệ, yêu cầu JWT hợp lệ và quyền tương ứng trong Permission Matrix M1.
+- Không sử dụng prefix `/internal` để phân loại endpoint. Các giao tiếp giữa Cart, Shop và Order phải tuân theo cơ chế xác thực, phân quyền được nhóm thống nhất; không mặc định cho phép mọi người dùng gọi chỉ vì endpoint không mang prefix `/internal`.
+
+````
+
+**Quan trọng:** Ở bước này chỉ sửa mục 2.1. Các endpoint `/api/internal/...` còn xuất hiện trong mục 4 sẽ được xử lý ở lỗi 4/8. Chưa dùng Replace All vì chúng ta cần bảo toàn mô tả nghiệp vụ giữa các service.
+
+Sau khi sửa xong, bạn nhắn **“xong lỗi 3”**. Khi đó tiến độ sẽ là **3/8, còn 5 mục**.
 - ID sử dụng UUID. Tiền sử dụng `BigDecimal`/`DECIMAL(12,2)` khi có xử lý trong Java/DB; JSON giá là số thập phân tính theo VND, không dùng số dấu phẩy động để tính tiền.
 - Request mang/được gán `correlation-id` để truy vết theo quy ước chung.
 
@@ -51,7 +60,7 @@
     }
   ]
 }
-```
+````
 
 | Field                | Kiểu                | Ý nghĩa                                                                                      |
 | -------------------- | ------------------- | -------------------------------------------------------------------------------------------- |
@@ -78,15 +87,16 @@
 
 ```json
 {
-  "code": "CART_QUANTITY_INVALID",
+  "status": 400,
+  "error": "INVALID",
   "message": "Số lượng phải là số nguyên từ 1 đến 100.",
-  "correlationId": "2c3d2abc-2a54-4e62-8f5e-d11baf5a3021"
+  "timestamp": "2026-10-31T16:00:00"
 }
 ```
 
-`code` là mã nghiệp vụ ổn định trong Cart; `message` phục vụ client. **Shape lỗi này là baseline thiết kế Cart v1.1**, nhưng chưa thay thế Error Contract dùng chung nếu nhóm ban hành một chuẩn khác. Khi tích hợp phải dùng adapter/điều chỉnh contract được review, không âm thầm làm sai các service khác. Không trả stack trace, dữ liệu giỏ người khác hoặc thông tin nội bộ Shop.
+Response lỗi tuân theo định dạng chung của nhóm gồm status, error, message và timestamp. Trong đó, status là mã HTTP; error biểu diễn loại lỗi; message mô tả nguyên nhân; timestamp ghi thời điểm phát sinh lỗi. Giá trị INVALID trong ví dụ áp dụng cho lỗi dữ liệu đầu vào theo hướng dẫn hiện tại của leader. Các giá trị error khác phải thống nhất với quy ước chung, không tự tạo mã lỗi riêng cho Cart. Không trả stack trace hoặc dữ liệu giỏ hàng của Customer khác.
 
-## 3. API công khai
+## 3. API dành cho Customer (yêu cầu xác thực)
 
 ### 3.1. `GET /api/cart`
 
@@ -124,7 +134,7 @@ GET không tự ghi database. Nếu Shop timeout/toàn bộ hoặc từng phần
 2. Xác minh SKU tồn tại và sellable thông qua Shop. Nếu Shop không thể xác minh, **từ chối ghi**.
 3. Nếu Cart chưa tồn tại, tạo Cart và item trong cùng transaction (lazy creation).
 4. Nếu SKU đã tồn tại trong Cart thì cộng dồn quantity. Tổng sau cộng không vượt 100; vượt giới hạn thì không thay đổi Cart.
-5. **Chiến lược concurrency bắt buộc:** Sau khi Shop xác minh SKU, bắt đầu transaction Cart DB. Khóa dòng `cart` của owner (`SELECT ... FOR UPDATE`) trước khi tìm/thêm/sửa CartItem. Nếu Cart chưa tồn tại, `INSERT cart` dựa vào UNIQUE `owner_id`; khi bị duplicate key do request khác vừa tạo Cart, rollback và retry toàn bộ transaction theo giới hạn cấu hình, sau đó khóa dòng Cart mới. Với item active đã tồn tại, cộng dồn bằng cập nhật SQL atomic kèm điều kiện `quantity + requestedQuantity <= 100`; kiểm tra số hàng cập nhật. Nếu chưa tồn tại, INSERT và dựa vào unique active `(cart_id, sku_id, active_marker)` để bắt race; chỉ retry **nội bộ transaction chưa commit** sau lỗi duplicate/deadlock, không retry HTTP POST mù quáng. Các transaction phải giữ thứ tự khóa thống nhất và có retry hữu hạn. Khi quá số lần retry, trả `409 CART_CONCURRENT_MODIFICATION`; nếu vượt 100, trả `409 CART_QUANTITY_LIMIT_EXCEEDED`.
+5. **Chiến lược concurrency bắt buộc:** Sau khi Shop xác minh SKU, bắt đầu transaction Cart DB. Khóa dòng `cart` của owner (`SELECT ... FOR UPDATE`) trước khi tìm/thêm/sửa CartItem. Nếu Cart chưa tồn tại, `INSERT cart` dựa vào UNIQUE `owner_id`; khi bị duplicate key do request khác vừa tạo Cart, rollback và retry toàn bộ transaction theo giới hạn cấu hình, sau đó khóa dòng Cart mới. Với item active đã tồn tại, cộng dồn bằng cập nhật SQL atomic kèm điều kiện `quantity + requestedQuantity <= 100`; kiểm tra số hàng cập nhật. Nếu chưa tồn tại, INSERT và dựa vào unique active `(cart_id, sku_id, active_marker)` để bắt race; chỉ retry **nội bộ transaction chưa commit** sau lỗi duplicate/deadlock, không retry HTTP POST mù quáng. Các transaction phải giữ thứ tự khóa thống nhất và có retry hữu hạn. Khi quá số lần retry, trả HTTP 409 do xung đột cập nhật; nếu vượt 100, trả HTTP 409 do vượt giới hạn số lượng.
 6. Không giữ hàng, không tính tổng tiền authoritative khi thêm giỏ.
 
 **Lỗi trong phạm vi Cart:** `400` invalid UUID/quantity, `401`, `403`, `409` quantity vượt 100 hoặc tranh chấp cập nhật không giải quyết được, `422` SKU không tồn tại/không sellable, `503` Shop không xác minh được, `500` lỗi nội bộ. Mã HTTP `409`/`422` là baseline của Cart; quy chuẩn Error Contract dùng chung vẫn phải được nhóm xác nhận trước khi tích hợp.
@@ -150,7 +160,7 @@ GET không tự ghi database. Nếu Shop timeout/toàn bộ hoặc từng phần
 - Chỉ truy vấn item thuộc Cart của Customer đang xác thực, `deleted_at IS NULL`.
 - `expectedVersion` là số nguyên không âm, bắt buộc. Client lấy từ `CartItemResponse.version` của lần đọc gần nhất; thiếu/sai kiểu trả `400`.
 - Quantity là số nguyên `[1,100]`; `0`, số âm, số thập phân hoặc trên 100 đều bị từ chối.
-- Bắt buộc cập nhật theo điều kiện `item_id`, `cart.owner_id`, `deleted_at IS NULL`, `version = expectedVersion`; cập nhật `quantity`, `updated_at` và `version = version + 1` **atomic** trong một transaction. Số hàng cập nhật bằng 0: trả `404` nếu item không tồn tại/không thuộc owner/đã xóa, còn item vẫn active nhưng version khác: `409 CART_CONCURRENT_MODIFICATION`; không trả dữ liệu owner khác.
+- Bắt buộc cập nhật theo điều kiện `item_id`, `cart.owner_id`, `deleted_at IS NULL`, `version = expectedVersion`; cập nhật `quantity`, `updated_at` và `version = version + 1` **atomic** trong một transaction. Số hàng cập nhật bằng 0: trả `404` nếu item không tồn tại/không thuộc owner/đã xóa, còn item vẫn active nhưng version khác: trả HTTP `409 Conflict` do xung đột phiên bản; không trả dữ liệu owner khác.
 - PATCH đổi sang đúng quantity hiện tại là no-op nếu version khớp, không tăng version; version không khớp vẫn `409`.
 - Tăng quantity: cần Shop xác minh SKU sellable. Shop timeout hoặc không sellable thì từ chối tăng.
 - Giảm quantity: được phép dù Shop không phản hồi; không gọi Shop để chặn giảm.
@@ -187,8 +197,9 @@ GET không tự ghi database. Nếu Shop timeout/toàn bộ hoặc từng phần
 
 ### 4.1. Order → Cart: đọc các item được chọn (đề xuất payload, endpoint theo D.2)
 
-**Đường dẫn theo D.2:** `GET /api/internal/carts/{userId}/items?ids=...`  
-**Người gọi:** Order Service đã xác thực ở tầng service-to-service; không public trên Gateway.
+**Endpoint:** Chưa chốt đường dẫn chính thức. D.2 từng đề xuất `GET /api/internal/carts/{userId}/items?ids=...`, nhưng quy ước `/internal` không còn được áp dụng theo phản hồi mới nhất của leader.
+
+**Người gọi:** Order Service, thông qua cơ chế giao tiếp và xác thực được nhóm thống nhất. Cart vẫn phải kiểm tra quyền truy cập dữ liệu của Customer, không mặc nhiên tin `userId` trong request.
 
 **Yêu cầu:** `ids` là tập UUID của các CartItem Customer chọn. `userId` trong path phải là user đã được Order xác thực và kiểm tra quyền checkout; Cart vẫn kiểm tra ownership tại DB.
 
@@ -216,8 +227,9 @@ GET không tự ghi database. Nếu Shop timeout/toàn bộ hoặc từng phần
 
 ### 4.2. Cart → Shop: tra cứu SKU và giá hiện tại (đề xuất tích hợp, chưa xác nhận từ Shop)
 
-**Đường dẫn theo D.2:** `POST /api/internal/skus:batch-get`  
-**Người gọi:** Cart Service có xác thực nội bộ.
+**Endpoint:** Chưa chốt đường dẫn chính thức. D.2 từng đề xuất `POST /api/internal/skus:batch-get`, nhưng quy ước `/internal` không còn được áp dụng theo phản hồi mới nhất của leader.
+
+**Người gọi:** Cart Service, thông qua cơ chế giao tiếp và xác thực được nhóm thống nhất. Shop Service vẫn là nguồn dữ liệu authoritative về SKU, giá và trạng thái bán hàng.
 
 **Request đề xuất:**
 
@@ -247,9 +259,9 @@ GET không tự ghi database. Nếu Shop timeout/toàn bộ hoặc từng phần
 | Tình huống xác minh                                                                          | Cart diễn giải        | GET Cart                            | POST/tăng quantity                                                        |
 | -------------------------------------------------------------------------------------------- | --------------------- | ----------------------------------- | ------------------------------------------------------------------------- |
 | Shop xác nhận SKU tồn tại, sellable và có giá                                                | `AVAILABLE`           | Giá tham khảo từ Shop               | Cho phép sau validation                                                   |
-| Shop xác nhận SKU ngừng bán/không sellable                                                   | `UNAVAILABLE`         | Giữ item                            | Từ chối `CART_SKU_UNAVAILABLE`                                            |
-| Shop xác nhận SKU không tồn tại                                                              | `UNAVAILABLE`         | Giữ item để người dùng biết         | Từ chối `CART_SKU_UNAVAILABLE`                                            |
-| Shop timeout, HTTP 5xx, response thiếu SKU mà không nêu lý do hoặc dữ liệu không đủ kết luận | `UNKNOWN`             | `priceUnavailable=true`, giá `null` | Từ chối `CART_SHOP_UNAVAILABLE`                                           |
+| Shop xác nhận SKU ngừng bán/không sellable                                                   | `UNAVAILABLE`         | Giữ item                            | Từ chối với `HTTP 422`                                                    |
+| Shop xác nhận SKU không tồn tại                                                              | `UNAVAILABLE`         | Giữ item để người dùng biết         | Từ chối `HTTP 422`                                                        |
+| Shop timeout, HTTP 5xx, response thiếu SKU mà không nêu lý do hoặc dữ liệu không đủ kết luận | `UNKNOWN`             | `priceUnavailable=true`, giá `null` | Từ chối `HTTP 503`                                                        |
 | SKU có trạng thái xác minh nhưng thiếu giá hợp lệ                                            | Không giả định có giá | Giá `null`, `priceUnavailable=true` | Phải có quy tắc xác nhận sellable riêng; nếu thiếu bằng chứng thì từ chối |
 
 **Ranh giới giao diện:** Cart phải dùng client/adapter để chuyển response Shop thực tế thành kết quả `CONFIRMED_SELLABLE`, `CONFIRMED_UNSELLABLE`, `CONFIRMED_MISSING` hoặc `UNVERIFIED`. Không suy diễn trạng thái từ item vắng mặt. Những tên trạng thái trên là **kiểu xử lý nội bộ Cart**, không áp đặt schema lên Shop.
@@ -260,7 +272,11 @@ GET không tự ghi database. Nếu Shop timeout/toàn bộ hoặc từng phần
 
 ### 4.3. Order → Cart: `OrderPlaced` / dọn giỏ sau checkout
 
-D.2 đã mô tả Cart nhận `OrderPlaced` để dọn những item được mua, **nhưng chưa chốt transport** (REST callback/push có retry hay message broker). Do đó **chưa đặt một URL nội bộ giả định làm chuẩn chính thức**.
+D.2 xác định Cart nhận thông báo `OrderPlaced` để dọn các CartItem đã được mua. Tuy nhiên, cơ chế truyền thông báo chưa được chốt chính thức.
+
+Theo quy ước cập nhật từ leader, không tự thiết kế endpoint có prefix `/internal`. Hợp đồng bên dưới chỉ mô tả payload logic và nguyên tắc xử lý của Cart, chưa xác định URL hay công nghệ truyền thông báo.
+
+Việc tiếp nhận `OrderPlaced` phải có cơ chế xác thực nguồn gửi và bảo vệ tính toàn vẹn dữ liệu, bất kể nhóm lựa chọn REST hay message broker.
 
 **Payload logic đề xuất, độc lập transport:**
 
@@ -290,21 +306,41 @@ D.2 đã mô tả Cart nhận `OrderPlaced` để dọn những item được mu
 
 **Điểm cần Order xác nhận (chưa Approved liên service):** thời điểm chính xác phát `OrderPlaced` (sau khi Order thực sự committed), tính bền vững/retry của thông báo, tính toàn vẹn dữ liệu `purchasedItems`, và cách xử lý khi checkout diễn ra song song với thay đổi Cart.
 
-## 5. Bảng mã lỗi dự kiến
+## 5. Quy định HTTP Status và Error Response
 
-| Mã lỗi                         | HTTP đề xuất | Trường hợp                                                        |
-| ------------------------------ | -----------: | ----------------------------------------------------------------- |
-| `CART_QUANTITY_INVALID`        |          400 | Quantity không phải số nguyên `[1,100]`                           |
-| `CART_ITEM_NOT_FOUND`          |          404 | Item không tồn tại, đã xóa hoặc không thuộc chủ giỏ               |
-| `CART_QUANTITY_LIMIT_EXCEEDED` |          409 | Tổng quantity sau cộng vượt 100                                   |
-| `CART_CONCURRENT_MODIFICATION` |          409 | PATCH có `expectedVersion` không trùng version hiện tại           |
-| `CART_SKU_UNAVAILABLE`         |          422 | Shop xác nhận SKU không tồn tại/không sellable khi thêm hoặc tăng |
-| `CART_SHOP_UNAVAILABLE`        |          503 | Không xác minh SKU được khi thêm hoặc tăng                        |
-| `UNAUTHORIZED`                 |          401 | Chưa xác thực hoặc JWT không hợp lệ                               |
-| `FORBIDDEN`                    |          403 | Thiếu quyền Cart tương ứng                                        |
-| `INTERNAL_ERROR`               |          500 | Không xử lý được do lỗi nội bộ                                    |
+Các API của Cart Service sử dụng cấu trúc response lỗi chung đã mô tả tại mục 2.3.
 
-**Baseline đã review cho Cart v1.1:** Các mã và HTTP status ở bảng này. **Chưa chốt ở cấp hệ thống:** shape chuẩn chung; khi có Error Contract của team phải review và đồng bộ trước khi tích hợp. Không dùng thông báo lỗi để tiết lộ Cart của user khác.
+Không định nghĩa thêm business error code riêng cho Cart Service.
+
+| HTTP Status               | Giá trị `error`         | Trường hợp                                                                             |
+| ------------------------- | ----------------------- | -------------------------------------------------------------------------------------- |
+| 400 Bad Request           | `INVALID`               | UUID không hợp lệ, quantity không thuộc [1,100], thiếu hoặc sai kiểu `expectedVersion` |
+| 401 Unauthorized          | `UNAUTHORIZED`          | Chưa đăng nhập, JWT không hợp lệ hoặc hết hạn                                          |
+| 403 Forbidden             | `FORBIDDEN`             | Người dùng không có quyền thực hiện thao tác                                           |
+| 404 Not Found             | `NOT_FOUND`             | CartItem không tồn tại, đã xóa hoặc không thuộc phạm vi Customer đang xác thực         |
+| 409 Conflict              | `CONFLICT`              | Quantity sau cộng vượt 100 hoặc xảy ra xung đột cập nhật version                       |
+| 422 Unprocessable Entity  | Chờ thống nhất          | Shop xác nhận SKU không tồn tại hoặc không thể bán                                     |
+| 500 Internal Server Error | `INTERNAL_SERVER_ERROR` | Lỗi xử lý nội bộ                                                                       |
+| 503 Service Unavailable   | `SERVICE_UNAVAILABLE`   | Không thể xác minh SKU do Shop Service không phản hồi                                  |
+
+**Lưu ý về tính thống nhất:**
+
+- `status` luôn phản ánh HTTP status thực tế.
+- `error` mô tả loại lỗi theo quy ước chung, không dùng mã riêng có tiền tố `CART_`.
+- `message` giải thích cụ thể nguyên nhân để frontend hiển thị.
+- `timestamp` ghi thời điểm lỗi phát sinh.
+- Các giá trị `error` ngoài `INVALID` và `UNAUTHORIZED` trong bảng là đề xuất cần đối chiếu với cách xử lý lỗi chung của nhóm trước khi triển khai; chưa được xem là đã chốt bởi leader.
+- Không tiết lộ sự tồn tại của CartItem thuộc Customer khác qua thông báo lỗi.
+
+```
+
+**Lưu ý quan trọng:** Anh Quý đã đưa ví dụ `INVALID` và `UNAUTHORIZED`, nhưng chưa xác nhận tất cả giá trị `error` khác. Tôi cố ý đánh dấu chúng là đề xuất, thay vì biến suy đoán thành quyết định kỹ thuật.
+
+**Bước 4:** Nhấn `Ctrl + S` để lưu.
+
+Chưa sửa các mã `CART_...` ở những mục khác. Chúng ta sẽ xử lý chúng trong mục 5/8 để tránh bỏ sót.
+
+Khi bạn hoàn thành, nhắn **“xong lỗi 2”**. Chúng ta sẽ cập nhật tiến độ thành **2/8, còn 6 mục** rồi chuyển sang sửa quy ước `/api/internal/**`.
 
 ## 6. Bất biến dữ liệu, transaction và kiểm thử
 
@@ -344,7 +380,7 @@ D.2 đã mô tả Cart nhận `OrderPlaced` để dọn những item được mu
 1. **D.2/Q1 – Transport OrderPlaced:** REST callback có retry hoặc message broker. Giữ payload logic độc lập transport; không đặt endpoint callback/messaging mặc định.
 2. **Shop – `skus:batch-get`:** Wire format, xử lý SKU không tồn tại, ngừng bán và lỗi một phần. Cart có quy tắc ánh xạ nội bộ tại §4.2; Shop cần xác nhận response cụ thể.
 3. **Order – checkout snapshot:** Order nhận, lưu và gửi lại `cartItemId`, `skuId`, `quantity`, `version`; sự kiện chỉ phát sau Order committed. Phải có retry bền vững và idempotency theo `orderId`.
-4. **Chuẩn lỗi chung:** Nhóm cần xác nhận shape và HTTP semantics chung. Bảng §5 là baseline nội bộ Cart, không áp đặt cho service khác.
+4. **Chuẩn lỗi chung:** Cart sử dụng Error Response gồm `status`, `error`, `message`, `timestamp` theo quy ước hiện tại của nhóm. Không sử dụng business error code riêng có tiền tố `CART_`. Các giá trị `error` chưa được leader xác nhận phải được đối chiếu với implementation chung trước khi tích hợp.
 5. **Soft-delete và DB migration:** MySQL generated column `active_marker`, unique constraint và Check phải được thực thi bằng migration, có test duplicate/concurrency; `.dbml` chỉ là mô hình.
 6. **Đồng bộ UML (việc cần hoàn tất trước PR):** `CartItemResponse` bổ sung `version`; `UpdateQuantityRequest` bổ sung `expectedVersion`; xuất lại `cart-class.png` và lưu `.drawio`. Chưa có bằng chứng trong lượt review này rằng người dùng đã sửa hai field đó.
 
@@ -359,13 +395,19 @@ D.2 đã mô tả Cart nhận `OrderPlaced` để dọn những item được mu
 - [x] OrderPlaced idempotent, snapshot cleanup không xóa thay đổi mới.
 - [ ] Cập nhật đồng bộ class diagram (`version`, `expectedVersion`) và ảnh xuất.
 - [ ] Chủ Shop xác nhận schema batch-get, chủ Order xác nhận snapshot/payload và D.2/Q1 có quyết định transport.
-- [ ] Team xác nhận Error Contract dùng chung và review PR.
+- [ ] Đối chiếu các giá trị `error` với implementation chung của nhóm và hoàn tất review PR.
 
 ## 9. Các quy tắc triển khai tránh hiểu nhầm
 
 - **Tính bất biến của snapshot:** `version` phải duy nhất theo từng chuỗi thay đổi của cùng CartItem; không reset khi cập nhật/soft-delete. CartItem được tạo lại sau soft-delete phải có `itemId` mới. So khớp cleanup bằng `itemId`, `skuId`, `version`, owner và active state ngay trong điều kiện update.
+
 - **Idempotency:** `processed_order_event.order_id` có PK/UNIQUE. Xử lý insert và cleanup trong một transaction; nếu insert bị conflict do duplicate thì coi đã xử lý và không chạy cleanup nữa. Không dùng `existsByOrderId()` đơn độc để bảo vệ race.
+
 - **Trình tự checkout:** Order lấy snapshot, xác minh lại SKU/giá/stock và reserve qua Shop; Cart không cam kết giá/stock tại thời điểm checkout. Nếu Order đã đặt và item được Customer sửa sau snapshot, Cart giữ item mới theo D.8-06, không tự trừ quantity.
+
 - **Trường hợp SKU xác nhận ngừng bán:** GET vẫn trả CartItem với `UNAVAILABLE`; `UNKNOWN` dành cho thiếu bằng chứng xác minh. Giá chỉ được hiển thị khi có nguồn Shop hợp lệ.
-- **Không lộ Cart khác:** Client endpoints chỉ thao tác dựa trên authenticated principal, không chấp nhận ownerId của client. Internal Order endpoint có service auth + đối chiếu đúng owner với DB.
+
+- **Không lộ Cart khác:** Các endpoint Cart dành cho Customer chỉ sử dụng danh tính đã xác thực, không tin `ownerId` do client tự cung cấp. Giao tiếp với Order Service phải kiểm tra quyền truy cập dữ liệu và đối chiếu chủ sở hữu Cart trong database, không phụ thuộc vào prefix `/internal`.
+
 - **Lưu ý D.1 về soft-delete:** `cart_item` áp dụng soft-delete bằng `deleted_at`; việc xóa bản ghi `cart` không thuộc API M1 và chưa mặc định phát sinh.
+```

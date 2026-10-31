@@ -3,7 +3,7 @@
 **Dự án:** EeasyShopping  
 **Task:** SCRUM-191 – D.8 Thiết kế gói Cart Service  
 **Phạm vi:** Milestone 1  
-**Trạng thái:** Bản nháp, chờ review
+**Trạng thái:** REVIEW – Đã cập nhật theo phản hồi của leader, chờ xác nhận và merge PR.
 
 ## 1. Tài liệu tham chiếu
 
@@ -128,6 +128,33 @@ Cart chỉ được tạo khi Customer thêm SKU đầu tiên thành công.
 
 ## 4. Phân quyền
 
+### D.8-09 – Soft-delete CartItem
+
+Khi Customer xóa một CartItem, hệ thống không xóa vật lý bản ghi mà sử dụng cơ chế soft-delete.
+
+- CartItem đang hoạt động có `deleted_at IS NULL`.
+- Khi xóa, cập nhật `deleted_at` và tăng `version`.
+- Các thao tác xem giỏ hàng chỉ trả về CartItem đang hoạt động.
+- CartItem đã soft-delete không được tiếp tục cập nhật số lượng.
+- Khi Customer thêm lại SKU đã bị xóa, hệ thống tạo CartItem mới với `itemId` mới.
+- Việc xóa CartItem không làm thay đổi các Order đã được tạo trước đó.
+
+### D.8-10 – Ràng buộc duy nhất cho CartItem đang hoạt động
+
+Trong một Cart, mỗi SKU chỉ được có tối đa một CartItem đang hoạt động.
+
+Do sử dụng MySQL và cơ chế soft-delete, hệ thống không sử dụng `UNIQUE(cart_id, sku_id, deleted_at)` để bảo đảm tính duy nhất, vì MySQL cho phép nhiều giá trị `NULL` trong UNIQUE index.
+
+Thiết kế sử dụng generated column `active_marker`:
+
+- Nếu `deleted_at IS NULL`, `active_marker = 1`.
+- Nếu CartItem đã bị soft-delete, `active_marker = NULL`.
+- Tạo unique index trên `(cart_id, sku_id, active_marker)`.
+
+Ràng buộc này cho phép lưu lịch sử các CartItem đã xóa, đồng thời ngăn hai CartItem đang hoạt động có cùng SKU trong một Cart.
+
+Ràng buộc phải được triển khai trong database migration và kiểm thử với các request đồng thời.
+
 ### 4.1. Quyền truy cập
 
 - `CART_READ_SELF`: Xem giỏ hàng của chính mình.
@@ -140,7 +167,7 @@ Cart chỉ được tạo khi Customer thêm SKU đầu tiên thành công.
 - Backend xác định `userId` từ thông tin xác thực.
 - Không tin `userId` hoặc `cartId` do client gửi để xác định quyền sở hữu.
 - Seller và Admin không mặc nhiên được xem giỏ của Customer khác.
-- API nội bộ dành cho Order Service phải có cơ chế xác thực và phân quyền giữa các service.
+- Các API Cart dành cho Customer yêu cầu xác thực và quyền tương ứng theo Permission Matrix M1. Giao tiếp giữa Cart Service và Order Service phải tuân theo cơ chế xác thực, phân quyền được nhóm thống nhất; Cart vẫn phải kiểm tra quyền sở hữu dữ liệu. Không sử dụng prefix `/internal` để xác định quyền truy cập.
 
 ## 5. Các vấn đề kỹ thuật cần hoàn thiện
 
@@ -154,12 +181,14 @@ Cart chỉ được tạo khi Customer thêm SKU đầu tiên thành công.
 
 ## 6. Truy vết yêu cầu
 
-| Quy tắc           | Căn cứ                                          |
-| ----------------- | ----------------------------------------------- |
-| D.8-01 đến D.8-03 | FR-CART-001/002, UC-CART-001 và quyết định D.8  |
-| D.8-04, D.8-05    | FR-CART-004, D.2, UC-CART-001 và quyết định D.8 |
-| D.8-06, D.8-07    | D.2 và quyết định D.8                           |
-| D.8-08            | Quyết định thiết kế D.8                         |
-| Phân quyền        | FR-CART-003 và Permission Matrix M1             |
+| Quy tắc           | Căn cứ                                                             |
+| ----------------- | ------------------------------------------------------------------ |
+| D.8-01 đến D.8-03 | FR-CART-001/002, UC-CART-001 và quyết định D.8                     |
+| D.8-04, D.8-05    | FR-CART-004, D.2, UC-CART-001 và quyết định D.8                    |
+| D.8-06, D.8-07    | D.2 và quyết định D.8                                              |
+| D.8-08            | Quyết định thiết kế D.8                                            |
+| D.8-09            | Quyết định soft-delete CartItem trong D.8; `cart.dbml`             |
+| D.8-10            | Quyết định ràng buộc unique active CartItem trong D.8; `cart.dbml` |
+| Phân quyền        | FR-CART-003 và Permission Matrix M1                                |
 
-**Lưu ý:** Các mã D.8-01 đến D.8-08 là quyết định thiết kế của task SCRUM-191, không phải mã Business Rule gốc trong Requirements Specification.
+**Lưu ý:** Các mã D.8-01 đến D.8-10 là quyết định thiết kế của task SCRUM-191, không phải mã Business Rule gốc trong Requirements Specification.
