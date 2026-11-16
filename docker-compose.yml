@@ -1,0 +1,97 @@
+name: eeasy
+
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: eeasy-mysql
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+      - --default-time-zone=+07:00
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      DB_AUTH_PASSWORD: ${DB_AUTH_PASSWORD}
+      DB_SHOP_PASSWORD: ${DB_SHOP_PASSWORD}
+      DB_CART_PASSWORD: ${DB_CART_PASSWORD}
+      DB_ORDER_PASSWORD: ${DB_ORDER_PASSWORD}
+      DB_PAYMENT_PASSWORD: ${DB_PAYMENT_PASSWORD}
+      DB_NOTIFICATION_PASSWORD: ${DB_NOTIFICATION_PASSWORD}
+      DB_AUDIT_PASSWORD: ${DB_AUDIT_PASSWORD}
+    volumes:
+      - eeasy_mysql_data:/var/lib/mysql
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - eeasy-data-net
+      - eeasy-app-net
+    healthcheck:
+      test: [ "CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$$MYSQL_ROOT_PASSWORD --silent" ]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 6
+
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+    container_name: eeasy-api-gateway
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    ports:
+      - "8080:8080"
+    depends_on:
+      auth-service:
+        condition: service_healthy
+    networks:
+      - eeasy-app-net
+
+  auth-service:
+    build:
+      context: ./services/auth-service
+    container_name: eeasy-auth-service
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "nc -z localhost 8080 || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    expose:
+      - "8081"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - eeasy-app-net
+      - eeasy-data-net
+
+  shop-service:
+    build:
+      context: ./services/shop-service
+    expose:
+      - "8082"
+    networks:
+      - eeasy-app-net
+
+  product-service:
+    build:
+      context: ./services/product-service
+    expose:
+      - "8083"
+    networks:
+      - eeasy-app-net
+
+networks:
+  eeasy-app-net:
+    driver: bridge
+
+  eeasy-data-net:
+    driver: bridge
+    internal: true
+
+volumes:
+  eeasy_mysql_data:
