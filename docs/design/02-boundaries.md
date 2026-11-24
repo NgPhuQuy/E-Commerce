@@ -310,6 +310,6 @@ Hai dòng cuối cố ý nêu ra: hợp đồng API/sự kiện là chỗ **đư
 | 13 | CRUD hóa đơn                                 | **Order**               |                                                             |
 | 14 | CRUD `CartItem` trong `Cart`                 | **Cart**                |                                                             |
 | 15 | Ghi log giao tác nhạy cảm                    | **Audit**               | Chỉ nhận sự kiện                                            |
-| 16 | BlackBox Test (JUnit)                        | — (mỗi service tự test) |                                                             |
+| 16 | BlackBox Test (pytest + httpx)               | — (module `blackbox-tests/` độc lập) | Gọi HTTP qua API Gateway                                    |
 
 **Kiểm tra "xong khi":** 13 chức năng nghiệp vụ (dòng 3 đến 15) đều thuộc đúng 1 service; hai dòng hạ tầng và một dòng kiểm thử không phải chức năng của service nghiệp vụ nên ghi rõ "—". Notification không có dòng trong M1 nhưng vẫn có ranh giới ở mục 3.6.
