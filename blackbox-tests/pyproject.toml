@@ -1,0 +1,21 @@
+[project]
+name = "eeasyshopping-blackbox-tests"
+version = "0.1.0"
+description = "Black-box API tests qua API Gateway (pytest + httpx), độc lập hoàn toàn với code các service"
+requires-python = ">=3.12"
+dependencies = [
+    "httpx>=0.28.0",
+    "pytest>=8.3.0",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+addopts = "-ra -v"
+markers = [
+    "p1: Luồng chính, bảo mật, tiền — lỗi là chặn phát hành",
+    "p2: Luồng phụ và kiểm tra dữ liệu đầu vào quan trọng",
+    "p3: Trường hợp hiếm, định dạng thông báo, trường tùy chọn",
+]

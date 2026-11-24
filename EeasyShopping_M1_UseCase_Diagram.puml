@@ -1,0 +1,120 @@
+@startdot
+graph EeasyShopping_M1 {
+  layout=neato;
+  overlap=true;
+  splines=true;
+  outputorder=edgesfirst;
+  bgcolor="white";
+  pad="0.45";
+  margin="0.04";
+  fontname="Noto Sans";
+  fontcolor="#0F172A";
+  fontsize=24;
+  label=<<FONT FACE="Noto Sans" POINT-SIZE="24"><B>EeasyShopping | MILESTONE 1 - USE CASE DIAGRAM</B></FONT><BR/><FONT FACE="Noto Sans" POINT-SIZE="13" COLOR="#64748B">18 Use Case  ·  3 Actor  ·  5 Service Group</FONT>>;
+  labelloc=t;
+  labeljust=c;
+  node [pin=true];
+  edge [color="#A3B1C2", penwidth=1.15];
+  CUSTOMER [shape=plain, pos="1.0,11.25!", pin=true, label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD><FONT FACE="DejaVu Sans Mono" POINT-SIZE="25" COLOR="#0F172A">○</FONT></TD></TR><TR><TD><FONT FACE="DejaVu Sans Mono" POINT-SIZE="20" COLOR="#0F172A">╱│╲</FONT></TD></TR><TR><TD><FONT FACE="DejaVu Sans Mono" POINT-SIZE="20" COLOR="#0F172A">╱ ╲</FONT></TD></TR><TR><TD><FONT FACE="Noto Sans" POINT-SIZE="16" COLOR="#0F172A"><B>Customer</B></FONT></TD></TR></TABLE>>];
+  SELLER [shape=plain, pos="24.2,10.15!", pin=true, label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD><FONT FACE="DejaVu Sans Mono" POINT-SIZE="25" COLOR="#0F172A">○</FONT></TD></TR><TR><TD><FONT FACE="DejaVu Sans Mono" POINT-SIZE="20" COLOR="#0F172A">╱│╲</FONT></TD></TR><TR><TD><FONT FACE="DejaVu Sans Mono" POINT-SIZE="20" COLOR="#0F172A">╱ ╲</FONT></TD></TR><TR><TD><FONT FACE="Noto Sans" POINT-SIZE="16" COLOR="#0F172A"><B>Seller</B></FONT></TD></TR></TABLE>>];
+  ADMIN [shape=plain, pos="24.2,14.55!", pin=true, label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1"><TR><TD><FONT FACE="DejaVu Sans Mono" POINT-SIZE="25" COLOR="#0F172A">○</FONT></TD></TR><TR><TD><FONT FACE="DejaVu Sans Mono" POINT-SIZE="20" COLOR="#0F172A">╱│╲</FONT></TD></TR><TR><TD><FONT FACE="DejaVu Sans Mono" POINT-SIZE="20" COLOR="#0F172A">╱ ╲</FONT></TD></TR><TR><TD><FONT FACE="Noto Sans" POINT-SIZE="16" COLOR="#0F172A"><B>Admin</B></FONT></TD></TR></TABLE>>];
+  subgraph cluster_auth {
+    label=<<FONT FACE="Noto Sans" POINT-SIZE="15" COLOR="#334155"><B>AUTH SERVICE</B></FONT>>;
+    labelloc=t;
+    labeljust=l;
+    style="rounded,filled";
+    color="#CBD5E1";
+    fillcolor="#F5F8FB";
+    penwidth=1.2;
+    margin=28;
+    UC_AUTH_001 [shape=ellipse, label=<<FONT FACE="Noto Sans" POINT-SIZE="13" COLOR="#0F172A"><B>UC-AUTH-001</B></FONT><BR/><FONT FACE="Noto Sans" POINT-SIZE="13" COLOR="#0F172A">Đăng ký Customer</FONT>>, style="filled", fillcolor="#F8FAFC", color="#0F766E", fontcolor="#0F172A", penwidth=1.6, fixedsize=true, width=3.25, height=1.0, pos="5.0,17.5!", pin=true];
+    UC_AUTH_002 [shape=ellipse, label=<<FONT FACE="Noto Sans" POINT-SIZE="13" COLOR="#0F172A"><B>UC-AUTH-002</B></FONT><BR/><FONT FACE="Noto Sans" POINT-SIZE="13" COLOR="#0F172A">Đăng nhập nội bộ</FONT>>, style="filled", fillcolor="#F8FAFC", color="#0F766E", fontcolor="#0F172A", penwidth=1.6, fixedsize=true, width=3.25, height=1.0, pos="8.8,17.5!", pin=true];
+    UC_AUTH_003 [shape=ellipse, label=<<FONT FACE="Noto Sans" POINT-SIZE="13" COLOR="#0F172A"><B>UC-AUTH-003</B></FONT><BR/><FONT FACE="Noto Sans" POINT-SIZE="13" COLOR="#0F172A">Đăng nhập Google</FONT>>, style="filled", fillcolor="#F8FAFC", color="#0F766E", fontcolor="#0F172A", penwidth=1.6, fixedsize=true, width=3.25, height=1.0, pos="12.6,17.5!", pin=true];
+    UC_AUTH_004 [shape=ellipse, label=<<FONT FACE="Noto Sans" POINT-SIZE="13" COLOR="#0F172A"><B>UC-AUTH-004</B></FONT><BR/><FONT FACE="Noto Sans" POINT-SIZE="13" COLOR="#0F172A">Đăng xuất</FONT>>, style="filled", fillcolor="#F8FAFC", color="#0F766E", fontcolor="#0F172A", penwidth=1.6, fixedsize=true, width=3.25, height=1.0, pos="16.4,17.5!", pin=true];
+    UC_AUTH_008 [shape=ellipse, label=<<FONT FACE="Noto Sans" POINT-SIZE="13" COLOR="#0F172A"><B>UC-AUTH-008</B></FONT><BR/><FONT FACE="Noto Sans" POINT-SIZE="13" COLOR="#0F172A">Xác minh email</FONT>>, style="filled", fillcolor="#F8FAFC", color="#0F766E", fontcolor="#0F172A", penwidth=1.6, fixedsize=true, width=3.25, height=1.0, pos="20.2,17.5!", pin=true];
+    _spacer_auth [shape=point, style=invis, width=0.01, height=0.01, pos="12.5,18.45!", pin=true];
+  }
+  subgraph cluster_shop {
+    label=<<FONT FACE="Noto Sans" POINT-SIZE="15" COLOR="#334155"><B>SHOP SERVICE</B></FONT>>;
+    labelloc=t;
+    labeljust=l;
+    style="rounded,filled";
+    color="#CBD5E1";
+    fillcolor="#F5F8FB";
+    penwidth=1.2;
+    margin=28;
+    UC_SHOP_002 [shape=ellipse, label=<<FONT FACE="Noto Sans" POINT-SIZE="13" COLOR="#0F172A"><B>UC-SHOP-002</B></FONT><BR/><FONT FACE="Noto Sans" POINT-SIZE="13" COLOR="#0F172A">Gửi SellerApplication</FONT>>, style="filled", fillcolor="#F8FAFC", color="#0F766E", fontcolor="#0F172A", penwidth=1.6, fixedsize=true, width=3.25, height=1.0, pos="10.6,14.4!", pin=true];
+    UC_SHOP_003 [shape=ellipse, label=<<FONT FACE="Noto Sans" POINT-SIZE="13" COLOR="#0F172A"><B>UC-SHOP-003</B></FONT><BR/><FONT FACE="Noto Sans" POINT-SIZE="13" COLOR="#0F172A">Duyệt / từ chối Seller</FONT>>, style="filled", fillcolor="#F8FAFC", color="#0F766E", fontcolor="#0F172A", penwidth=1.6, fixedsize=true, width=3.25, height=1.0, pos="19.6,14.4!", pin=true];
+    UC_SHOP_001 [shape=ellipse, label=<<FONT FACE="Noto Sans" POINT-SIZE="13" COLOR="#0F172A"><B>UC-SHOP-001</B></FONT><BR/><FONT FACE="Noto Sans" POINT-SIZE="13" COLOR="#0F172A">Tạo và quản lý Shop</FONT>>, style="filled", fillcolor="#F8FAFC", color="#0F766E", fontcolor="#0F172A", penwidth=1.6, fixedsize=true, width=3.25, height=1.0, pos="19.6,12.65!", pin=true];
+    UC_PROD_001 [shape=ellipse, label=<<FONT FACE="Noto Sans" POINT-SIZE="13" COLOR="#0F172A"><B>UC-PROD-001</B></FONT><BR/><FONT FACE="Noto Sans" POINT-SIZE="13" COLOR="#0F172A">Quản lý Product / SKU</FONT>>, style="filled", fillcolor="#F8FAFC", color="#0F766E", fontcolor="#0F172A", penwidth=1.6, fixedsize=true, width=3.25, height=1.0, pos="19.6,10.9!", pin=true];
+    UC_INV_001 [shape=ellipse, label=<<FONT FACE="Noto Sans" POINT-SIZE="13" COLOR="#0F172A"><B>UC-INV-001</B></FONT><BR/><FONT FACE="Noto Sans" POINT-SIZE="13" COLOR="#0F172A">Cập nhật tồn kho SKU</FONT>>, style="filled", fillcolor="#F8FAFC", color="#0F766E", fontcolor="#0F172A", penwidth=1.6, fixedsize=true, width=3.25, height=1.0, pos="15.6,10.9!", pin=true];
+    UC_SHOP_005 [shape=ellipse, label=<<FONT FACE="Noto Sans" POINT-SIZE="13" COLOR="#0F172A"><B>UC-SHOP-005</B></FONT><BR/><FONT FACE="Noto Sans" POINT-SIZE="13" COLOR="#0F172A">Quản lý ShopCollection</FONT>>, style="filled", fillcolor="#F8FAFC", color="#0F766E", fontcolor="#0F172A", penwidth=1.6, fixedsize=true, width=3.25, height=1.0, pos="11.6,10.9!", pin=true];
+    _spacer_shop [shape=point, style=invis, width=0.01, height=0.01, pos="14.5,15.35!", pin=true];
+  }
+  subgraph cluster_cart {
+    label=<<FONT FACE="Noto Sans" POINT-SIZE="15" COLOR="#334155"><B>CART SERVICE</B></FONT>>;
+    labelloc=t;
+    labeljust=l;
+    style="rounded,filled";
+    color="#CBD5E1";
+    fillcolor="#F5F8FB";
+    penwidth=1.2;
+    margin=28;
+    UC_CART_001 [shape=ellipse, label=<<FONT FACE="Noto Sans" POINT-SIZE="13" COLOR="#0F172A"><B>UC-CART-001</B></FONT><BR/><FONT FACE="Noto Sans" POINT-SIZE="13" COLOR="#0F172A">Quản lý Cart / CartItem</FONT>>, style="filled", fillcolor="#F8FAFC", color="#0F766E", fontcolor="#0F172A", penwidth=1.6, fixedsize=true, width=3.25, height=1.0, pos="5.0,14.2!", pin=true];
+    _spacer_cart [shape=point, style=invis, width=0.01, height=0.01, pos="5.0,15.15!", pin=true];
+  }
+  subgraph cluster_order {
+    label=<<FONT FACE="Noto Sans" POINT-SIZE="15" COLOR="#334155"><B>ORDER SERVICE</B></FONT>>;
+    labelloc=t;
+    labeljust=l;
+    style="rounded,filled";
+    color="#CBD5E1";
+    fillcolor="#F5F8FB";
+    penwidth=1.2;
+    margin=28;
+    UC_CHK_001 [shape=ellipse, label=<<FONT FACE="Noto Sans" POINT-SIZE="13" COLOR="#0F172A"><B>UC-CHK-001</B></FONT><BR/><FONT FACE="Noto Sans" POINT-SIZE="13" COLOR="#0F172A">Checkout (tiền hàng)</FONT>>, style="filled", fillcolor="#F8FAFC", color="#0F766E", fontcolor="#0F172A", penwidth=1.6, fixedsize=true, width=3.25, height=1.0, pos="5.0,8.85!", pin=true];
+    UC_ORD_001 [shape=ellipse, label=<<FONT FACE="Noto Sans" POINT-SIZE="13" COLOR="#0F172A"><B>UC-ORD-001</B></FONT><BR/><FONT FACE="Noto Sans" POINT-SIZE="13" COLOR="#0F172A">Xem lịch sử / chi tiết Order</FONT>>, style="filled", fillcolor="#F8FAFC", color="#0F766E", fontcolor="#0F172A", penwidth=1.6, fixedsize=true, width=3.25, height=1.0, pos="5.0,7.05!", pin=true];
+    UC_ORD_002 [shape=ellipse, label=<<FONT FACE="Noto Sans" POINT-SIZE="13" COLOR="#0F172A"><B>UC-ORD-002</B></FONT><BR/><FONT FACE="Noto Sans" POINT-SIZE="13" COLOR="#0F172A">Hủy Order theo trạng thái</FONT>>, style="filled", fillcolor="#F8FAFC", color="#0F766E", fontcolor="#0F172A", penwidth=1.6, fixedsize=true, width=3.25, height=1.0, pos="5.0,5.25!", pin=true];
+    UC_SORD_001 [shape=ellipse, label=<<FONT FACE="Noto Sans" POINT-SIZE="13" COLOR="#0F172A"><B>UC-SORD-001</B></FONT><BR/><FONT FACE="Noto Sans" POINT-SIZE="13" COLOR="#0F172A">Xem SellerOrder</FONT>>, style="filled", fillcolor="#F8FAFC", color="#0F766E", fontcolor="#0F172A", penwidth=1.6, fixedsize=true, width=3.25, height=1.0, pos="16.1,8.0!", pin=true];
+    UC_SORD_002 [shape=ellipse, label=<<FONT FACE="Noto Sans" POINT-SIZE="13" COLOR="#0F172A"><B>UC-SORD-002</B></FONT><BR/><FONT FACE="Noto Sans" POINT-SIZE="13" COLOR="#0F172A">Xử lý SellerOrder</FONT>>, style="filled", fillcolor="#F8FAFC", color="#0F766E", fontcolor="#0F172A", penwidth=1.6, fixedsize=true, width=3.25, height=1.0, pos="16.1,6.2!", pin=true];
+    _spacer_order [shape=point, style=invis, width=0.01, height=0.01, pos="10.5,9.8!", pin=true];
+  }
+  subgraph cluster_payment {
+    label=<<FONT FACE="Noto Sans" POINT-SIZE="15" COLOR="#334155"><B>PAYMENT SERVICE</B></FONT>>;
+    labelloc=t;
+    labeljust=l;
+    style="rounded,filled";
+    color="#CBD5E1";
+    fillcolor="#F5F8FB";
+    penwidth=1.2;
+    margin=28;
+    UC_PAY_001 [shape=ellipse, label=<<FONT FACE="Noto Sans" POINT-SIZE="13" COLOR="#0F172A"><B>UC-PAY-001</B></FONT><BR/><FONT FACE="Noto Sans" POINT-SIZE="13" COLOR="#0F172A">Thanh toán VNPay</FONT>>, style="filled", fillcolor="#F8FAFC", color="#0F766E", fontcolor="#0F172A", penwidth=1.6, fixedsize=true, width=3.25, height=1.0, pos="5.0,3.05!", pin=true];
+    _spacer_payment [shape=point, style=invis, width=0.01, height=0.01, pos="5.0,3.92!", pin=true];
+  }
+  M1_NOTE [shape=box, style="rounded,filled", fillcolor="#ECFDF5", color="#99F6E4", penwidth=1, fontname="Noto Sans", fontsize=13, fontcolor="#115E59", pos="13.2,1.02!", pin=true, fixedsize=true, width=17.7, height=0.96, label=<<B>GHI CHÚ PHẠM VI M1</B><BR/>Email phải xác minh · Admin duyệt SellerApplication chỉ cấp SELLER · Seller tự tạo Shop, không cần duyệt Shop<BR/>Checkout chỉ tính tiền hàng, chưa tính phí ship hoặc gọi Last-Mile>];
+  CUSTOMER -- UC_AUTH_001 [color="#9AAFC4", penwidth=1.15];
+  CUSTOMER -- UC_AUTH_002 [color="#9AAFC4", penwidth=1.15];
+  CUSTOMER -- UC_AUTH_003 [color="#9AAFC4", penwidth=1.15];
+  CUSTOMER -- UC_AUTH_004 [color="#9AAFC4", penwidth=1.15];
+  CUSTOMER -- UC_AUTH_008 [color="#9AAFC4", penwidth=1.15];
+  CUSTOMER -- UC_SHOP_002 [color="#9AAFC4", penwidth=1.15];
+  CUSTOMER -- UC_CART_001 [color="#9AAFC4", penwidth=1.15];
+  CUSTOMER -- UC_CHK_001 [color="#9AAFC4", penwidth=1.15];
+  CUSTOMER -- UC_ORD_001 [color="#9AAFC4", penwidth=1.15];
+  CUSTOMER -- UC_ORD_002 [color="#9AAFC4", penwidth=1.15];
+  CUSTOMER -- UC_PAY_001 [color="#9AAFC4", penwidth=1.15];
+  SELLER -- UC_AUTH_002 [color="#75AAA6", penwidth=1.15];
+  SELLER -- UC_AUTH_003 [color="#75AAA6", penwidth=1.15];
+  SELLER -- UC_AUTH_004 [color="#75AAA6", penwidth=1.15];
+  SELLER -- UC_SHOP_001 [color="#75AAA6", penwidth=1.15];
+  SELLER -- UC_PROD_001 [color="#75AAA6", penwidth=1.15];
+  SELLER -- UC_INV_001 [color="#75AAA6", penwidth=1.15];
+  SELLER -- UC_SHOP_005 [color="#75AAA6", penwidth=1.15];
+  SELLER -- UC_SORD_001 [color="#75AAA6", penwidth=1.15];
+  SELLER -- UC_SORD_002 [color="#75AAA6", penwidth=1.15];
+  ADMIN -- UC_AUTH_002 [color="#B5A48F", penwidth=1.15];
+  ADMIN -- UC_AUTH_003 [color="#B5A48F", penwidth=1.15];
+  ADMIN -- UC_AUTH_004 [color="#B5A48F", penwidth=1.15];
+  ADMIN -- UC_SHOP_003 [color="#B5A48F", penwidth=1.15];
+}
+@enddot
