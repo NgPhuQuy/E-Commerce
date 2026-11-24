@@ -17,7 +17,7 @@ concurrency:
 jobs:
   ci-gate:
     name: CI-Pass
-    needs: 
+    needs: []
     if: always()
     runs-on: ubuntu-latest
     steps:
